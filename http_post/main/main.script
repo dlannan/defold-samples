@@ -1,0 +1,118 @@
+
+
+local tinsert 	= table.insert
+local tremove 	= table.remove 
+
+-----------------------------------------------------------------------------------------
+-- Replace with the path generated from here: 
+--     https://www.softaculous.com/demos/GRAV
+--     Then click on Admin.
+
+local host 			= "demos6.softaculous.com/GRAVvihbogewp4"
+local req_opts 	= { timeout=3, ignore_cache=true } 
+
+-----------------------------------------------------------------------------------------
+-- Use this as your handler function to see the response data in debug log
+
+local function http_nav_result(self, _, response)
+	print(response.status)
+	print(response.response)
+	pprint(response.headers)
+end
+
+-----------------------------------------------------------------------------------------
+
+local function dopostrequest( self, path, handler )
+
+	--local url 	=  "https://reqbin.com/echo/post/form"
+	local url 	=  "https://"..host..path
+	local postdata = "data%5Busername%5D=admin&data%5Bpassword%5D=Password1&task=login&login-nonce="..self.login_nonce
+
+	-- Expect to get a redirect to login when doing a request - which needs to have either Cookie or
+	--  nonce and login correctly passed in
+	http.request(
+		url, "POST", handler,
+		{
+			["Content-Type"] = "application/x-www-form-urlencoded",
+			["Accept-Language"] = "en,en-US;q=0.5",
+			Connection =  "keep-alive",
+			["Upgrade-Insecure-Requests"] = 1,
+			Cookie = self.cookie,
+		},
+		postdata,
+		{ timeout = 3 }		-- dont ignore cache once login was successful
+	)
+end 
+
+-----------------------------------------------------------------------------------------
+
+local function getloginnonce( self ) 
+
+	local url 	=  "https://"..host.."/admin"
+	local function http_result(self, _, response)
+		print(response.status)
+		--pprint(response.response)
+		pprint(response.headers)
+		pprint(response.path)
+		pprint(response.err)
+
+		self.login_nonce = string.match(response.response, "name=\"login%-nonce\" value=\"([0-9a-fA-F]+)\"")
+		print("Nonce: ", self.login_nonce)
+		self.cookie = string.match(response.headers["set-cookie"], "([0-9a-zA-Z%-=]+);")
+		print("Cookie: ", self.cookie)
+		dopostrequest(self, "/admin", function(myself, _, response) 
+			-- 303 means the login went well and we have a redirect to a new location to get the actual page
+			if(response.status == 303) then 
+				dopostrequest(self, "/admin", function(myself, _, response) 
+					print(response.response)
+				end)
+			end 
+		end)
+	end
+
+	http.request(url, "GET", http_result, nil, nil, req_opts)
+end
+
+-----------------------------------------------------------------------------------------
+
+function init(self)
+	self.logging 	= {}
+	self.form_id 	= nil 
+	self.run_login	= true
+
+	self.nonce 		= nil 
+	self.cookie 	= nil 
+end
+
+-----------------------------------------------------------------------------------------
+
+function final(self)
+end
+
+-----------------------------------------------------------------------------------------
+
+function update(self, dt)
+
+	-- Simple little "run once at start" setup
+	if(self.run_login) then 
+		self.run_login = nil
+		getloginnonce(self)
+	end
+end
+
+-----------------------------------------------------------------------------------------
+
+function on_message(self, message_id, message, sender)
+end
+
+-----------------------------------------------------------------------------------------
+
+function on_input(self, action_id, action)
+end
+
+-----------------------------------------------------------------------------------------
+
+function on_reload(self)
+end
+
+-----------------------------------------------------------------------------------------
