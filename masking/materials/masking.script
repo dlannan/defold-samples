@@ -4,14 +4,7 @@ go.property("targettile", msg.url())
 function init(self)
 	self.target_pos = go.get_position(self.targettile)
 	self.our_pos = go.get_position("#")
-
-	-- distance from own position to target
-	local from = go.get_position()
-	local to = vmath.vector3(300, 0, 0)
-	local distance = vmath.length(from - to)
-	-- 200 pixels/s
-	local duration = distance / 200
-	go.animate(".", "position", to, go.EASING_LINEAR, duration)
+	self.masklevel = 0.1
 end
 
 function final(self)
@@ -19,15 +12,20 @@ end
 
 function update(self, dt)
 	self.target_pos = go.get_position(self.targettile)
-	self.our_pos = go.get_position("#")
+	self.our_pos = go.get_position("#")	
 
+	self.our_pos.x = self.our_pos.x + 50 * dt 
+	self.our_pos.y = self.our_pos.y - 10 * dt 
+	if(self.our_pos.x > 1000) then self.our_pos.x = 0.0 end
+	go.set_position(self.our_pos)
+		
 	-- Because both objects are same size, we can cheat a little. 
 	--  Figure out the relative offset of the mask with the sprite - convert to tex coords (0->1)
-	local diffx = (self.target_pos.x - self.our_pos.x) / 512.0
-	local diffy = (self.target_pos.y - self.our_pos.y) / 512.0
-	
+	local diffx = (self.our_pos.x - self.target_pos.x - 0.5) / 512.0
+	local diffy = (self.our_pos.y - self.target_pos.y - 0.5) / 512.0
+		
 	-- Set the properties in the material!
-	model.set_constant("#model_shadow", "maskpos", vmath.vector4(-diffx, -diffy, 0, 0))
+	model.set_constant("#model_shadow", "maskpos", vmath.vector4(diffx, diffy, 0, self.masklevel))
 end
 
 function on_message(self, message_id, message, sender)

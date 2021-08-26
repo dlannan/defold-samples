@@ -12,7 +12,7 @@ void main()
     lowp vec4 color = texture2D(tex0, var_texcoord0.xy) * tint_pm;
     lowp vec4 color_mask = texture2D(mask0, var_texcoord0.xy + maskpos.xy);
 
-    if(color_mask.r + color_mask.g + color_mask.b > 0.0) 
+    if(color_mask.a > maskpos.w) 
         gl_FragColor = color;
     else 
         gl_FragColor = vec4(0.0);    
