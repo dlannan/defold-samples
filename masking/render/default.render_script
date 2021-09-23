@@ -54,9 +54,19 @@ function init(self)
     self.near = -1
     self.far = 1
     self.projection_fn = stretch_projection
+    self.constants = render.constant_buffer()
+    self.wind_strength = 0.1
+    self.starttime = socket.gettime()
+    self.lasttime = 0.0
 end
 
 function update(self)
+
+    local thistime = socket.gettime() - self.starttime
+    local dt = thistime - self.lasttime
+    self.lasttime = thistime
+    self.constants.color_wind = vmath.vector4(thistime, self.wind_strength, 0, 0)
+    
     render.set_depth_mask(true)
     render.set_stencil_mask(0xff)
     render.clear({[render.BUFFER_COLOR_BIT] = self.clear_color, [render.BUFFER_DEPTH_BIT] = 1, [render.BUFFER_STENCIL_BIT] = 0})
@@ -73,7 +83,7 @@ function update(self)
 
     render.set_projection(get_projection(self))
 
-    render.draw(self.tile_pred)
+    render.draw(self.tile_pred, self.constants)
     render.draw(self.masking_pred)
     render.draw(self.particle_pred)
     render.draw_debug3d()
